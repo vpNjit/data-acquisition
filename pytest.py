@@ -8,7 +8,7 @@ def get_title(soup):
 		# Outer Tag Object
 		title = soup.find("span", attrs={"id":'productTitle'})
 
-		# Inner NavigableString Object
+		# Inner NavigatableString Object
 		title_value = title.string
 
 		# Title as a string value
@@ -32,7 +32,13 @@ def get_price(soup):
 		price = soup.find("span", attrs={'id':'priceblock_ourprice'}).string.strip()
 
 	except AttributeError:
-		price = ""	
+
+		try:
+			# If there is some deal price
+			price = soup.find("span", attrs={'id':'priceblock_dealprice'}).string.strip()
+
+		except:		
+			price = ""	
 
 	return price
 
@@ -68,31 +74,64 @@ def get_availability(soup):
 		available = available.find("span").string.strip()
 
 	except AttributeError:
-		available = ""	
+		available = "Not Available"	
 
-	return available	
+	return available
+    
+# Function to extract product image
+def get_image(soup):
+	try:
+		image = soup.find("i", attrs={'class':'s-product-image-container'}).string.strip()
+		
+	except AttributeError:
+		
+		try:
+			image = soup.find("span", attrs={'class':'s-product-image-container'}).string.strip()
+		except:
+			image = ""	
+
+	return image
+
 
 if __name__ == '__main__':
 
 	# Headers for request
 	HEADERS = ({'User-Agent':
 	            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
-	            'Accept-Language': 'en-US, en;q=0.5'})
+	            'Accept-Language': 'en-US'})
 
 	# The webpage URL
-	URL = "https://www.amazon.com/Sony-PlayStation-Pro-1TB-Console-4/dp/B07K14XKZH/"
-
+	URL = "https://www.amazon.com/s?k=kitchen&rh=n%3A1055398&dc&ds=v1%3AyJYKdC3zrOsBxzRvuRa%2FGtoCJRjUvYN%2B2vnwm0bLPzY&crid=2YUGVX6774X8L&qid=1667286722&rnid=2941120011&sprefix=kitche%2Caps%2C1373&ref=sr_nr_n_1"
+	
 	# HTTP Request
 	webpage = requests.get(URL, headers=HEADERS)
 
 	# Soup Object containing all data
 	soup = BeautifulSoup(webpage.content, "lxml")
 
-	# Function calls to display all necessary product information
-	print("Product Title =", get_title(soup))
-	print("Product Price =", get_price(soup))
-	print("Product Rating =", get_rating(soup))
-	print("Number of Product Reviews =", get_review_count(soup))
-	print("Availability =", get_availability(soup))
-	print()
-	print()
+	# Fetch links as List of Tag Objects
+	links = soup.find_all("a", attrs={'class':'a-link-normal s-no-outline'})
+
+	# Store the links
+	links_list = []
+
+	# Loop for extracting links from Tag Objects
+	for link in links:
+		links_list.append(link.get('href'))
+
+
+	# Loop for extracting product details from each link 
+	for link in links_list:
+
+		new_webpage = requests.get("https://www.amazon.com" + link, headers=HEADERS)
+
+		new_soup = BeautifulSoup(new_webpage.content, "lxml")
+		
+		# Function calls to display all necessary product information
+		print("Product Title =", get_title(new_soup))
+		print("Product Price =", get_price(new_soup))
+		print("Product Rating =", get_rating(new_soup))
+		print("Number of Product Reviews =", get_review_count(new_soup))
+		print("Availability =", get_availability(new_soup))
+		print("Product Image =", get_image(new_soup))
+		print()
